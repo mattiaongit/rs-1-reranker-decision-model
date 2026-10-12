@@ -48,6 +48,16 @@ RS-1 drives a real Chrome window. The agent loop, the way pages are turned into 
 
 At every step, every possible action on the page (each link, button, field and dropdown option, plus wait, scroll and done) is a candidate. The reranker scores them against the goal, the page and the steps so far. The app shows the top 4, ordered by score, then the chosen one.
 
+**About the help ("rules").** Some recordings below use generic rules on top of the reranker. They are the same code for every site: no rule names a website, URL, button or field, and "Custom URL…" in the app runs exactly the same code on any page you enter. The rules handle mechanical patterns that most websites share:
+- after typing into a search box, pick the suggestion that matches what was typed, or press that form's button;
+- put each value from the goal into the field it belongs to ("from Zurich" goes to the field labelled "from");
+- open a dropdown whose current value isn't the one the goal asks for;
+- don't repeat an action that changed nothing;
+- stop when the page title or the result list matches what the goal names;
+- if a page shows an error, wait and press its retry button.
+
+That's a deliberate split. Whatever plain code can do reliably is done by code, which is faster, predictable and free to run. The model is used for what code can't do: judging which of many options fits the goal. The rules aren't magic, though. They rely on English words (month names, "from/to", "retry"), and they were written while watching the sites in this repo, so new kinds of sites may need new ones.
+
 ### Hotel search: *"Find a Design stay in Lisbon with Free cancellation and open Casa Flora."*
 
 Rules + reranker mode (shown at 1.5× speed). Watch the step tags: for five steps the reranker wants to click "View Casa Flora" straight away, and the rules make it fill the destination and set the filters first. See the note on this below.
@@ -66,7 +76,7 @@ Rules + reranker mode (shown at 3× speed).
 
 ![Google Flights](docs/browser-flights.gif)
 
-**Flights needs help the reranker can't provide on its own.** RS-1 completes it reliably only with generic rules on top of the reranker (see below):
+**Flights needs help the reranker can't provide on its own.** RS-1 completes it reliably only with the generic rules described above, none of them specific to Google Flights:
 - the rules decide which value goes into which field (Zurich → "Where from?", the date → "Departure");
 - they pick the autocomplete suggestion that matches what was typed;
 - they open the ticket-type dropdown, because its value ("Round trip") isn't what the goal asks for;
@@ -106,7 +116,7 @@ So the 14 of 14 is a development score, not a measure of how RS-1 does on sites 
 - **Recognise that it's finished.** Offered "Done" as one more option, it keeps choosing relevant links. Asked "is the goal achieved?" as a separate question, it stops too early: it can't tell "almost there" from "there".
 - **Follow a sequence.** It doesn't treat "I typed the search, so now I pick the suggestion or press Search" as the next step. It tends to re-select the most relevant thing again.
 
-These are what a trained decision model like Jev learns. RS-1 handles them with **generic rules**: no rule names a site, URL or button, and the same code runs on any URL you enter. But the rules depend on English words (month names, "from/to", "retry"), and they were written while watching these sites. In the app, every step is tagged with who decided it: the reranker, a rule the reranker agreed with, or a rule that overrode it, with what the reranker wanted instead.
+These are what a trained decision model like Jev learns. RS-1 handles them with the generic rules described above. In the app, every step is tagged with who decided it: the reranker, a rule the reranker agreed with, or a rule that overrode it, with what the reranker wanted instead.
 
 **Speed:** about 3–6× slower than the times jev-ultrafast reports for Jev. For example, the hotel task takes 5–7 s against Jev's 1.9 s, and Flights about 40 s against 7 s. Most of that is scoring 10–40 options per step with a local 0.6B model. After each run, the app shows a breakdown of model, page-loading and browser time, and how many options were scored.
 
