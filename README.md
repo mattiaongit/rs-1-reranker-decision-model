@@ -82,16 +82,18 @@ Rules + reranker mode (shown at 3× speed).
 - they open the ticket-type dropdown, because its value ("Round trip") isn't what the goal asks for;
 - they recognise that the results page is the goal. At the last step of the recording, the reranker's own top choice was to click a flight (97%), which would have started a booking.
 
-### What the reranker does, and what it doesn't
+### Browser use: what the reranker does alone, and what it doesn't
 
-The app has four modes, so you can see exactly how much the reranker does alone:
+This section is about browser use only. In the quiz and the Wikipedia race, the reranker makes every decision itself.
+
+The browser app has four modes, so you can see exactly how much the reranker does alone:
 
 | Mode | Who decides | Passed |
 |---|---|---|
 | **Rules + reranker** | reranker ranks every action; generic rules can override it | **14 of 14** |
 | **Reranker + done check** | reranker chooses every move; code only checks whether the page is the goal | **6 of 14** |
-| **Assisted** | code only prepares the options (removes repeats, describes hidden dropdown choices); reranker chooses | 2 of 6 main tasks |
-| **Reranker only** | only the help jev-ultrafast gives Jev (its written instructions, the page, recent actions). The reranker doesn't recognise when the task is done. | 0 of 6 main tasks |
+| **Assisted** | code only prepares the options (removes repeats, describes hidden dropdown choices); reranker chooses, and also judges when it's done as a separate question | 7 of 14 |
+| **Reranker only** | only the help jev-ultrafast gives Jev (its written instructions, the page, recent actions). The reranker doesn't recognise when the task is done. | 0 of 14 |
 
 On the hotel task, the reranker's instinct to open Casa Flora straight away isn't unreasonable: the hotel is visible from the start. But the task, from jev-ultrafast, deliberately requires the filters to be set, and its check verifies them. Their instructions to Jev say: "a matching result alone does not prove a requested filter was set."
 
@@ -109,9 +111,9 @@ Benchmark: jev-ultrafast's three tasks plus Wikipedia, Books to Scrape, Hacker N
 
 So the 14 of 14 is a development score, not a measure of how RS-1 does on sites it has never seen. The honest test of that is running it on your own sites with "Custom URL…".
 
-**What the reranker is good at:** finding the most relevant thing on a page. The right category, the right book, the right article, the right search text, the right option once a dropdown is open.
+**What the reranker is good at in browser use:** finding the most relevant thing on a page. The right category, the right book, the right article, the right search text, the right option once a dropdown is open.
 
-**What it can't do:**
+**What it can't do there:**
 - **Match values to fields.** It once rated typing "September 20" into "Where from?" at 0.95.
 - **Recognise that it's finished.** Offered "Done" as one more option, it keeps choosing relevant links. Asked "is the goal achieved?" as a separate question, it stops too early: it can't tell "almost there" from "there".
 - **Follow a sequence.** It doesn't treat "I typed the search, so now I pick the suggestion or press Search" as the next step. It tends to re-select the most relevant thing again.
