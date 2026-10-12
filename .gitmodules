@@ -1,3 +1,3 @@
 [submodule "jev-ultrafast"]
-	path = jev-ultrafast
+	path = third_party/jev-ultrafast
 	url = https://github.com/browser-use/jev-ultrafast.git

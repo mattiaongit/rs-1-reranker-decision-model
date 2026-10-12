@@ -8,8 +8,7 @@ including WAIT/SCROLL and DONE/BLOCKED; the highest-scoring one is executed. No 
 Field text: Jev's loop asks a text LLM; there is none here, so the reranker picks the value from
 the phrases of the goal (every run of 1-6 consecutive words).
 
-    AGENT=pure uv run local_jev.py
-    AGENT=pure uv run bench_jev.py
+    AGENT=pure uv run rs1-bench     (or pick "Reranker only" in the app)
 """
 import math
 import os
@@ -19,7 +18,7 @@ import time
 from jev_ultrafast.model import action_space
 from jev_ultrafast.questions import NEXT_ACTION, TARGET, TEXT_VALUE
 
-from reranker import shared
+from rs1.reranker import shared
 
 MODEL = os.environ.get("RERANKER", "Qwen/Qwen3-Reranker-0.6B")
 rr = shared(MODEL)

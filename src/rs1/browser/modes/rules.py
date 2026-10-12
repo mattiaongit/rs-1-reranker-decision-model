@@ -22,8 +22,8 @@ from urllib.parse import urlparse
 from jev_ultrafast.browser import Browser
 from jev_ultrafast.model import action_space
 
-from reranker import shared
-from shortlist import Shortlist
+from rs1.reranker import shared
+from rs1.shortlist import Shortlist
 
 MODEL = os.environ.get("RERANKER", "Qwen/Qwen3-Reranker-0.6B")
 rr = shared(MODEL)

@@ -3,16 +3,16 @@
 Each hop: fetch every article linked from the current page (with its short
 description), score each one against the target, follow the best unvisited link.
 
-    uv run wikirace.py                       # built-in races
-    uv run wikirace.py "Pizza" "Quantum mechanics"
+    uv run python -m rs1.wikirace                       # built-in races
+    uv run python -m rs1.wikirace "Pizza" "Quantum mechanics"
 """
 import sys
 import time
 
 import requests
 
-from reranker import Reranker
-from shortlist import Shortlist
+from rs1.reranker import Reranker
+from rs1.shortlist import Shortlist
 
 API = "https://en.wikipedia.org/w/api.php"
 S = requests.Session()
@@ -127,7 +127,7 @@ def race(rr, start, target, max_hops=12, sl=None):
             return e["win"], e["hops"], e["secs"]
 
 
-if __name__ == "__main__":
+def main():
     rr, sl = Reranker(batch_size=16), Shortlist()
     races = [tuple(sys.argv[1:3])] if len(sys.argv) == 3 else RACES
     results = [race(rr, s, t, sl=sl) for s, t in races]
@@ -136,3 +136,7 @@ if __name__ == "__main__":
     if wins:
         print(f", median {sorted(h for _, h, _ in wins)[len(wins) // 2]} hops, "
               f"{sum(t for *_, t in results) / len(results):.0f}s avg per race")
+
+
+if __name__ == "__main__":
+    main()

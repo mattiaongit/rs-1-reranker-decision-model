@@ -23,8 +23,8 @@ from jev_ultrafast.browser import Browser
 from jev_ultrafast.model import action_space
 from jev_ultrafast.questions import NEXT_ACTION
 
-import decide  # shares the loaded reranker; reuses its text helpers and the element-context patch
-from decide import goal_values, holds_goal_value, norm
+from rs1.browser.modes import rules as decide  # shares the loaded reranker, text helpers, element context
+from rs1.browser.modes.rules import goal_values, holds_goal_value, norm
 
 rr = decide.rr
 DONE_INSTRUCTION = ("Given a user's goal for a website and the page the browser is on now, judge whether "

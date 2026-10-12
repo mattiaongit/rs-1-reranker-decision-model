@@ -3,9 +3,10 @@
 One process: serves their fixture page, drives the agent Chrome, checks outcomes
 independently (never trusting the agent's own DONE), saves traces.
 
-    ./start_chrome.sh            # once
-    uv run bench_jev.py          # all tasks
-    uv run bench_jev.py travel books
+    scripts/start_chrome.sh      # once
+    uv run rs1-bench             # the six main tasks (AGENT=rules|pure_done|assist|pure)
+    uv run rs1-bench later       # the eight tasks written later; 'all' for all fourteen
+    uv run rs1-bench travel books
 """
 import json
 import os
@@ -16,11 +17,12 @@ from http.server import ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import unquote
 
-import local_jev  # noqa: F401  (patches choose/field_text, loads the reranker)
+from rs1.browser import JEV_ULTRAFAST
+from rs1.browser import app  # noqa: F401  (patches choose/field_text, loads the reranker)
 from jev_ultrafast import demo
 from jev_ultrafast.agent import Agent
 
-sys.path.insert(0, str(Path(__file__).parent / "jev-ultrafast" / "examples"))
+sys.path.insert(0, str(JEV_ULTRAFAST / "examples"))
 from flights import URL as FLIGHTS_URL  # noqa: E402
 
 # Their task asks for September 20, 2026, which is now in the past (Google won't offer it), so the
@@ -86,7 +88,7 @@ LATER = [k for k in TASKS if k.startswith(("x-", "y-"))]  # written later; see t
 
 def run(name, max_actions=int(os.environ.get("MAX_ACTIONS", 30))):
     url, goal, check = TASKS[name]
-    out = Path(__file__).parent / "traces" / name
+    out = Path.cwd() / "traces" / name
     out.mkdir(parents=True, exist_ok=True)
     t = time.time()
     agent = Agent(url, goal, record_dir=out / "frames" if os.environ.get("FRAMES") else None)
@@ -121,7 +123,7 @@ def run(name, max_actions=int(os.environ.get("MAX_ACTIONS", 30))):
     return ok
 
 
-if __name__ == "__main__":
+def main():
     server = ThreadingHTTPServer(("127.0.0.1", demo.PORT), demo.Handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     names = sys.argv[1:] or [k for k in TASKS if k not in LATER]
@@ -132,3 +134,7 @@ if __name__ == "__main__":
     results = {n: run(n) for n in names}
     print(f"\n{sum(results.values())}/{len(results)} passed")
     server.shutdown()
+
+
+if __name__ == "__main__":
+    main()

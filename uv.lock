@@ -1176,7 +1176,7 @@ wheels = [
 [[package]]
 name = "rs-1"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "browser-harness" },
     { name = "httpx", extra = ["http2"] },

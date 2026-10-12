@@ -6,8 +6,8 @@ is handled for it.
 """
 import time
 
-import decide
-import pure
+from rs1.browser.modes import pure
+from rs1.browser.modes import rules as decide
 
 _last_pick = {}  # id(history) -> (label, reranker score, page title) of the last move, for "just opened it"
 

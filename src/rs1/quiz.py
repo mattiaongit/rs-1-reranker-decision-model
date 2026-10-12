@@ -3,9 +3,9 @@
 Two phrasings: the option alone, and the option with all choices listed in the query
 (so the model can compare). Scores are also normalised across the options.
 
-    uv run mcq.py
+    uv run python -m rs1.quiz
 """
-from reranker import Reranker
+from rs1.reranker import Reranker
 
 QUESTIONS = [
     # easy: one clearly right answer
@@ -36,7 +36,7 @@ def show(q, scores, label):
         print(f"    {k}) {v:<22} p(yes)={scores[i]:.3f}  share={scores[i] / total:5.1%}{mark}")
 
 
-if __name__ == "__main__":
+def main():
     rr = Reranker(batch_size=8)
     for q in QUESTIONS:
         opts = list(q["options"].values())
@@ -44,3 +44,7 @@ if __name__ == "__main__":
         show(q, rr.score(INSTRUCTION, q["question"], opts), "option alone:")
         listed = q["question"] + " Choices: " + "; ".join(opts)
         show(q, rr.score(INSTRUCTION, listed, opts), "with all choices in the query:")
+
+
+if __name__ == "__main__":
+    main()

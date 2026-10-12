@@ -1,6 +1,6 @@
 """Wikirace UI: http://localhost:8804 — streams each hop over Server-Sent Events.
 
-    uv run server.py
+    uv run rs1-demo
 """
 import json
 import os
@@ -15,13 +15,13 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-from reranker import Reranker
-from mcq import INSTRUCTION as MCQ_INSTRUCTION, QUESTIONS
-from shortlist import Shortlist
-from wikirace import race_steps
+from rs1.quiz import INSTRUCTION as MCQ_INSTRUCTION, QUESTIONS
+from rs1.reranker import Reranker
+from rs1.shortlist import Shortlist
+from rs1.wikirace import race_steps
 
 PORT = 8804
-ROOT = Path(__file__).parent
+STATIC = Path(__file__).parent / "static"
 rr = Reranker(batch_size=16)
 sl = Shortlist()
 gpu = threading.Lock()  # one race at a time: the model isn't shared across threads
@@ -34,9 +34,9 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         url = urlparse(self.path)
         if url.path == "/":
-            self.send_body((ROOT / "index.html").read_bytes(), "text/html; charset=utf-8")
+            self.send_body((STATIC / "wikirace.html").read_bytes(), "text/html; charset=utf-8")
         elif url.path == "/mcq":
-            self.send_body((ROOT / "mcq.html").read_bytes(), "text/html; charset=utf-8")
+            self.send_body((STATIC / "quiz.html").read_bytes(), "text/html; charset=utf-8")
         elif url.path == "/mcq/presets":
             self.send_json({"questions": QUESTIONS, "instruction": MCQ_INSTRUCTION})
         elif url.path == "/race":
@@ -92,6 +92,10 @@ class Handler(BaseHTTPRequestHandler):
             gpu.release()
 
 
-if __name__ == "__main__":
-    print(f"Wikirace UI on http://localhost:{PORT}")
+def main():
+    print(f"Wikirace on http://127.0.0.1:{PORT}, quiz on http://127.0.0.1:{PORT}/mcq")
     ThreadingHTTPServer(("127.0.0.1", PORT), Handler).serve_forever()
+
+
+if __name__ == "__main__":
+    main()

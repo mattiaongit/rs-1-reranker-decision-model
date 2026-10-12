@@ -5,7 +5,7 @@ Plugs two functions into jev-ultrafast's agent loop, leaving its repo untouched:
                 against the goal + steps so far and the best is executed.
   field_text()  the value to type is a phrase copied from the goal, matched to the field by simple rules.
 
-    uv run local_jev.py           # simple UI (agent.html) on http://127.0.0.1:8766, their agent loop underneath
+    uv run rs1-browser            # the app (static/agent.html) on http://127.0.0.1:8766, their agent loop underneath
 """
 import os
 import sys
@@ -13,32 +13,30 @@ import time
 from pathlib import Path
 
 def agent_chrome_ws(port=9333):
-    """Browser websocket of the separate agent Chrome (own profile, started by start_chrome.sh)."""
+    """Browser websocket of the separate agent Chrome (own profile, started by scripts/start_chrome.sh)."""
     import json
     import urllib.request
     try:
         with urllib.request.urlopen(f"http://127.0.0.1:{port}/json/version", timeout=2) as r:
             return json.load(r)["webSocketDebuggerUrl"]
     except OSError:
-        sys.exit(f"No agent Chrome on port {port}. Run ./start_chrome.sh first.")
+        sys.exit(f"No agent Chrome on port {port}. Run scripts/start_chrome.sh first.")
 
 
 os.environ.setdefault("BU_CDP_WS", agent_chrome_ws())
 os.environ.setdefault("PYTORCH_MPS_HIGH_WATERMARK_RATIO", "0.3")
 os.environ.setdefault("PYTORCH_MPS_LOW_WATERMARK_RATIO", "0.2")
-sys.path.insert(0, str(Path(__file__).parent / "jev-ultrafast"))
 
 import jev_ultrafast.agent as jev_agent  # noqa: E402
 from jev_ultrafast import demo  # noqa: E402
 # Three decision modes share one loaded reranker; each run picks one (UI menu, or AGENT=... for the benchmark):
-#   rules   reranker + hand-written generic rules that can override it (decide.py)
-#   assist  code only prepares the options, the reranker always makes the choice (assist.py)
-#   pure    the reranker alone, with only the help jev-ultrafast gives Jev (pure.py)
-#   pure_done  the reranker alone for every move, plus the rules version's done check (pure_done.py)
-import assist  # noqa: E402
-import decide  # noqa: E402
-import pure  # noqa: E402
-import pure_done  # noqa: E402
+#   rules   reranker + hand-written generic rules that can override it (modes/rules.py)
+#   assist  code only prepares the options, the reranker always makes the choice (modes/assist.py)
+#   pure    the reranker alone, with only the help jev-ultrafast gives Jev (modes/pure.py)
+#   pure_done  the reranker alone for every move, plus the rules version's done check (modes/pure_done.py)
+from rs1.browser import JEV_ULTRAFAST  # noqa: E402
+from rs1.browser.modes import assist, pure, pure_done  # noqa: E402
+from rs1.browser.modes import rules as decide  # noqa: E402
 
 MODES = {"rules": decide, "assist": assist, "pure": pure, "pure_done": pure_done}
 MODE = {"current": os.environ.get("AGENT", "rules") if os.environ.get("AGENT") in MODES else "rules"}
@@ -188,7 +186,7 @@ def command(name, body):
 
 demo.command = command
 _read_text = Path.read_text
-PAGE = Path(__file__).parent / "agent.html"
+PAGE = Path(__file__).parent.parent / "static" / "agent.html"
 
 
 def read_text(self, *a, **k):
@@ -200,6 +198,10 @@ def read_text(self, *a, **k):
 
 Path.read_text = read_text
 
-if __name__ == "__main__":
-    os.chdir(Path(__file__).parent / "jev-ultrafast")
+def main():
+    os.chdir(JEV_ULTRAFAST)
     demo.main()
+
+
+if __name__ == "__main__":
+    main()

@@ -127,14 +127,14 @@ The model (about 1.2 GB) is downloaded from Hugging Face on first use. Run **one
 **Quiz and Wikipedia race:**
 
 ```sh
-uv run server.py        # Wikirace at http://127.0.0.1:8804, quiz at http://127.0.0.1:8804/mcq
+uv run rs1-demo         # Wikirace at http://127.0.0.1:8804, quiz at http://127.0.0.1:8804/mcq
 ```
 
 **Browser use:**
 
 ```sh
-./start_chrome.sh       # a separate Chrome with its own empty profile, remote debugging on port 9333
-uv run local_jev.py     # the app at http://127.0.0.1:8766
+scripts/start_chrome.sh # a separate Chrome with its own empty profile, remote debugging on port 9333
+uv run rs1-browser      # the app at http://127.0.0.1:8766
 ```
 
 The agent only drives that separate Chrome window, never your normal profile. Pick a site (or "Custom URL…"), a mode and a goal, then press **Run**.
@@ -142,24 +142,30 @@ The agent only drives that separate Chrome window, never your normal profile. Pi
 **Benchmark:**
 
 ```sh
-AGENT=rules uv run bench_jev.py          # the six main tasks; AGENT can be rules | pure_done | assist | pure
-AGENT=rules uv run bench_jev.py later    # the eight tasks written later
-AGENT=rules uv run bench_jev.py all      # all fourteen
+AGENT=rules uv run rs1-bench          # the six main tasks; AGENT can be rules | pure_done | assist | pure
+AGENT=rules uv run rs1-bench later    # the eight tasks written later
+AGENT=rules uv run rs1-bench all      # all fourteen
 ```
 
-## Files
+## Repository layout
 
-| File | What it does |
-|---|---|
-| `reranker.py` | Qwen3-Reranker scoring. The shared query is processed once and its cache reused for every option, and only the "yes"/"no" outputs are computed. |
-| `mcq.py`, `mcq.html` | the quiz |
-| `wikirace.py`, `index.html`, `server.py` | the Wikipedia race, and the server for the quiz and the race |
-| `local_jev.py` | plugs RS-1 into jev-ultrafast, serves the browser app (`agent.html`), human-like clicks, speed accounting |
-| `decide.py` | rules + reranker mode |
-| `pure_done.py`, `assist.py`, `pure.py` | the other three modes |
-| `bench_jev.py` | benchmark with independent checks |
-| `shortlist.py` | the optional embedding shortlist |
-| `tools/record_gif.py` | records the GIFs in this README from the running apps |
+```
+src/rs1/
+  reranker.py            Qwen3-Reranker scoring: the shared query is processed once and reused for
+                         every option, and only the "yes"/"no" outputs are computed
+  shortlist.py           optional embedding shortlist (model2vec)
+  quiz.py                1. the quiz questions (python -m rs1.quiz runs them in the terminal)
+  wikirace.py            2. the Wikipedia race (python -m rs1.wikirace races in the terminal)
+  demo_server.py         serves the quiz and the race             -> rs1-demo
+  static/                the web pages: quiz.html, wikirace.html, agent.html
+  browser/               3. browser use
+    app.py               plugs RS-1 into jev-ultrafast; human-like clicks, speed accounting -> rs1-browser
+    bench.py             benchmark with independent checks         -> rs1-bench
+    modes/               rules.py, pure_done.py, assist.py, pure.py: the four decision modes
+scripts/start_chrome.sh  the separate Chrome the agent drives
+third_party/jev-ultrafast  submodule, unmodified
+docs/                    the GIFs
+```
 
 ## Credits
 
