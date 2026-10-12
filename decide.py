@@ -17,6 +17,7 @@ import os
 import re
 import time
 import unicodedata
+from urllib.parse import urlparse
 
 from jev_ultrafast.browser import Browser
 from jev_ultrafast.model import action_space
@@ -490,8 +491,10 @@ def decide(state, goal, history):
             def fit(c):
                 got = norm(c["a"]["label"]).split()
                 overlap = sum(w in got for w in want) / len(want) if want else 0
-                extra = len([w for w in got if w not in want])  # fewest added words = closest to what was typed
-                return (norm(c["a"]["label"]).startswith(first), round(overlap, 2), -extra, c["score"])
+                # Exactly what was typed, before any comma/bracket/description, is the closest match:
+                # "London, United Kingdom" over "London Gatwick Airport", "Photosynthesis" over "Photosynthesis Research".
+                name = norm(re.split(r",|\(|\s{2,}| — | - ", c["a"]["label"].strip())[0])
+                return (norm(c["a"]["label"]).startswith(first), round(overlap, 2), name == text, c["score"])
             pick, reason = max(options, key=fit), "suggestion after typing"
             if last["kind"] != "fill":
                 reason = "option from the dropdown just opened"
@@ -642,7 +645,9 @@ def done_probability(state, goal, last_pick=None):
     ident = f'Page title: {state["title"]}\nURL: {url}'  # no query string: it can be hundreds of tokens
     p = rr.score(DONE_INSTRUCTION, f"Goal: {final}", [ident], max_doc_tokens=96)[0]
     _debug["done_parts"] = {"final": final, "ident": round(p, 3)}
-    names = sorted(goal_values(final), key=final.find)  # in the order the goal says them
+    # A site's own name ("Wikipedia" on wikipedia.org) isn't a thing the goal ends on.
+    site = set(norm(urlparse(state["url"]).hostname or "").split())
+    names = [n for n in goal_values(final) if not set(norm(n).split()) & site]
     if names:  # the last step names something: it should be on the page we're on
         here = norm(state["title"] + " " + url.replace("_", " ").replace("-", " "))
         target = norm(names[-1]).split()  # the last thing named is what the goal ends on
