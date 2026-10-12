@@ -85,7 +85,7 @@ The app has four modes, so you can see exactly how much the reranker does alone:
 
 On the hotel task, the reranker's instinct to open Casa Flora straight away isn't unreasonable: the hotel is visible from the start. But the task, from jev-ultrafast, deliberately requires the filters to be set, and its check verifies them. Their instructions to Jev say: "a matching result alone does not prove a requested filter was set."
 
-With only the done check, the reranker solves most "find and open the right thing" tasks (all three Books and both Hacker News tasks, the article list, one of the two quotes tasks). It fails in four ways:
+With only the done check, the reranker solves most "find and open the right thing" tasks (two of the three Books tasks, both Hacker News tasks, the article list, one of the two quotes tasks). It fails in four ways:
 - on the hotel page it opens the right hotel straight away, skipping the filters the goal asks for;
 - after typing a Wikipedia search it re-clicks the search box instead of picking a suggestion;
 - it can't fill in the Flights form;
