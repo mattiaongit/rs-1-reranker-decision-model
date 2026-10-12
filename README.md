@@ -91,7 +91,13 @@ With only the done check, the reranker solves most "find and open the right thin
 - it can't fill in the Flights form;
 - once, it kept choosing a link it couldn't click and never thought to scroll.
 
-Benchmark: jev-ultrafast's three tasks plus Wikipedia, Books to Scrape, Hacker News and quotes.toscrape.com, 14 tasks in all. 8 of them were written later and never used for tuning. Each result is checked independently against the final page, never by trusting the agent's own "done".
+Benchmark: jev-ultrafast's three tasks plus Wikipedia, Books to Scrape, Hacker News and quotes.toscrape.com, 14 tasks in all. Each result is checked independently against the final page, never by trusting the agent's own "done".
+
+**None of the 14 tasks is held out.** The rules were developed on the six main tasks. The eight others were written later, in two batches, to check that the rules carry over, and both batches influenced the code:
+- running the first four (`x-`) led to a fix before the second four (`y-`) were written;
+- one of the second four (`y-wiki`) later exposed a regression in suggestion matching, which was then fixed.
+
+So the 14 of 14 is a development score, not a measure of how RS-1 does on sites it has never seen. The honest test of that is running it on your own sites with "Custom URL…".
 
 **What the reranker is good at:** finding the most relevant thing on a page. The right category, the right book, the right article, the right search text, the right option once a dropdown is open.
 
@@ -108,7 +114,7 @@ These are what a trained decision model like Jev learns. RS-1 handles them with 
 
 ## Run it
 
-Requirements: macOS with Apple Silicon (or a CUDA/CPU machine; it falls back automatically), [uv](https://docs.astral.sh/uv/), and Google Chrome.
+Requirements: [uv](https://docs.astral.sh/uv/) and Google Chrome. RS-1 was developed and measured on an Apple Silicon Mac (MPS). It also picks an NVIDIA GPU (CUDA) when one is available, and otherwise falls back to the CPU in full precision. The CUDA path hasn't been tested, and the CPU is much slower. Set `RS1_DEVICE=cuda|mps|cpu` to force a device.
 
 ```sh
 git clone --recursive https://github.com/mattiaongit/rs-1-reranker-decision-model
@@ -136,8 +142,9 @@ The agent only drives that separate Chrome window, never your normal profile. Pi
 **Benchmark:**
 
 ```sh
-AGENT=rules uv run bench_jev.py            # main tasks; AGENT can be rules | pure_done | assist | pure
-AGENT=rules uv run bench_jev.py held-out   # the 8 tasks written after tuning
+AGENT=rules uv run bench_jev.py          # the six main tasks; AGENT can be rules | pure_done | assist | pure
+AGENT=rules uv run bench_jev.py later    # the eight tasks written later
+AGENT=rules uv run bench_jev.py all      # all fourteen
 ```
 
 ## Files

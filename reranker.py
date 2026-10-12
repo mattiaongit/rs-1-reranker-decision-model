@@ -21,10 +21,13 @@ SUFFIX = "<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n"
 class Reranker:
     def __init__(self, model=None, batch_size=32, max_length=512):
         model = model or os.environ.get("RERANKER", "Qwen/Qwen3-Reranker-0.6B")
-        self.device = "mps" if torch.backends.mps.is_available() else "cpu"
+        # CUDA, then Apple Silicon (MPS), then CPU; RS1_DEVICE=cuda|mps|cpu forces one.
+        self.device = os.environ.get("RS1_DEVICE") or (
+            "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
+        dtype = torch.float32 if self.device == "cpu" else torch.float16  # half precision is slow or unsupported on CPU
         t = time.time()
         self.tok = AutoTokenizer.from_pretrained(model, padding_side="left")
-        self.model = AutoModelForCausalLM.from_pretrained(model, dtype=torch.float16).to(self.device).eval()
+        self.model = AutoModelForCausalLM.from_pretrained(model, dtype=dtype).to(self.device).eval()
         self.yes = self.tok.convert_tokens_to_ids("yes")
         self.no = self.tok.convert_tokens_to_ids("no")
         self.prefix_ids = self.tok.encode(PREFIX, add_special_tokens=False)
@@ -86,8 +89,9 @@ class Reranker:
             del c, hidden
         del cache
         self.calls = getattr(self, "calls", 0) + 1
-        if self.device == "mps" and self.calls % 8 == 0:
-            torch.mps.empty_cache()  # hand cached GPU blocks back now and then; otherwise they pile up
+        if self.calls % 8 == 0 and self.device in ("mps", "cuda"):
+            # hand cached GPU blocks back now and then; otherwise they pile up
+            (torch.mps if self.device == "mps" else torch.cuda).empty_cache()
         return out
 
 

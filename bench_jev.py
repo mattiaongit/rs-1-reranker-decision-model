@@ -60,7 +60,7 @@ TASKS = {
     "hn": ("https://news.ycombinator.com/", "Open the Ask HN page.",
            lambda a, s: s["page"]["url"].rstrip("/").endswith("/ask")),
     "flights": (FLIGHTS_URL, FLIGHTS_GOAL, lambda a, s: verify_flights(s["page"])["passed"]),
-    # held out: never used while tuning
+    # Written after the six main tasks. Not held out: running them led to a fix.
     "x-books": ("https://books.toscrape.com/", "Open the Travel category and then open the book It's Only the Himalayas.",
                 lambda a, s: "/its-only-the-himalayas_" in s["page"]["url"]),
     "x-wiki": ("https://en.wikipedia.org/wiki/Main_Page", "Find and open the Wikipedia article about the Eiffel Tower.",
@@ -69,7 +69,8 @@ TASKS = {
              lambda a, s: s["page"]["url"].rstrip("/").endswith("/jobs")),
     "x-quotes": ("https://quotes.toscrape.com/", "Open the quotes tagged love.",
                  lambda a, s: "/tag/love" in s["page"]["url"]),
-    # second held-out set, written after the x- tasks were used for a fix
+    # Written after the x- tasks had led to a fix. Not held out either: y-wiki later exposed a
+    # regression (a suggestion-matching change) that was fixed.
     "y-travel": (f"{FIXTURE}?scenario=travel", "Find a Nature stay in Lisbon and open Serra Lodge.",
                  lambda a, s: s["page"]["url"].endswith("#serra-lodge")
                  and "Your filters: Nature · Free cancellation off · Destination Lisbon" in body(a)),
@@ -80,7 +81,7 @@ TASKS = {
     "y-quotes": ("https://quotes.toscrape.com/", "Open the author page of Albert Einstein.",
                  lambda a, s: "/author/Albert-Einstein" in s["page"]["url"]),
 }
-HELD_OUT = [k for k in TASKS if k.startswith(("x-", "y-"))]
+LATER = [k for k in TASKS if k.startswith(("x-", "y-"))]  # written later; see the comments above
 
 
 def run(name, max_actions=int(os.environ.get("MAX_ACTIONS", 30))):
@@ -123,9 +124,11 @@ def run(name, max_actions=int(os.environ.get("MAX_ACTIONS", 30))):
 if __name__ == "__main__":
     server = ThreadingHTTPServer(("127.0.0.1", demo.PORT), demo.Handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
-    names = sys.argv[1:] or [k for k in TASKS if k not in HELD_OUT]
-    if names == ["held-out"]:
-        names = HELD_OUT
+    names = sys.argv[1:] or [k for k in TASKS if k not in LATER]
+    if names == ["later"]:
+        names = LATER
+    elif names == ["all"]:
+        names = list(TASKS)
     results = {n: run(n) for n in names}
     print(f"\n{sum(results.values())}/{len(results)} passed")
     server.shutdown()
