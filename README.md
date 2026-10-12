@@ -91,7 +91,7 @@ The app has four modes, so you can see exactly how much the reranker does alone:
 | **Rules + reranker** | reranker ranks every action; generic rules can override it | **14 of 14** |
 | **Reranker + done check** | reranker chooses every move; code only checks whether the page is the goal | **6 of 14** |
 | **Assisted** | code only prepares the options (removes repeats, describes hidden dropdown choices); reranker chooses | 2 of 6 main tasks |
-| **Reranker only** | only the help jev-ultrafast gives Jev (its written instructions, the page, recent actions) | 0 of 6 main tasks: it doesn't recognise when the task is done. On three it reached the right page but never chose "Done", kept clicking and ended elsewhere; on the other three it never got there. |
+| **Reranker only** | only the help jev-ultrafast gives Jev (its written instructions, the page, recent actions). The reranker doesn't recognise when the task is done. | 0 of 6 main tasks |
 
 On the hotel task, the reranker's instinct to open Casa Flora straight away isn't unreasonable: the hotel is visible from the start. But the task, from jev-ultrafast, deliberately requires the filters to be set, and its check verifies them. Their instructions to Jev say: "a matching result alone does not prove a requested filter was set."
 
