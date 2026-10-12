@@ -182,3 +182,7 @@ docs/                    the GIFs
 - [Qwen3-Reranker-0.6B](https://huggingface.co/Qwen/Qwen3-Reranker-0.6B) by the Qwen team.
 - [jev-ultrafast](https://github.com/browser-use/jev-ultrafast) by Browser Use × TypeSafe (MIT): the agent loop, page snapshots, the hotel and research test pages, and the Flights task. RS-1's browser part is inspired by it and runs on top of it.
 - [browser-harness](https://pypi.org/project/browser-harness/) for Chrome control, and [model2vec](https://github.com/MinishLab/model2vec) for the shortlist.
+
+## License
+
+MIT, see [LICENSE](LICENSE). jev-ultrafast (in `third_party/`) is MIT-licensed by its authors, and Qwen3-Reranker-0.6B is released by the Qwen team under Apache 2.0.

@@ -2,6 +2,7 @@
 name = "rs-1"
 version = "0.1.0"
 description = "RS-1: a small local reranker (Qwen3-Reranker-0.6B) used as a decision model"
+license = "MIT"
 requires-python = ">=3.12"
 dependencies = [
     "browser-harness==0.1.13",
