@@ -1,0 +1,13 @@
+[project]
+name = "rs-1"
+version = "0.1.0"
+description = "RS-1: a small local reranker (Qwen3-Reranker-0.6B) used as a decision model"
+requires-python = ">=3.12"
+dependencies = [
+    "browser-harness==0.1.13",
+    "httpx[http2]>=0.28,<1",
+    "model2vec>=0.10.0",
+    "requests>=2.34.2",
+    "torch>=2.14.1",
+    "transformers>=5.19.0",
+]

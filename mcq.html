@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reranker Quiz</title>
+<style>
+  :root {
+    --bg: #f6f5f1; --panel: #ffffff; --ink: #1d1c1a; --muted: #6f6c66; --line: #e3e0d8;
+    --accent: #2f6fdb; --accent-soft: #e5eefc; --win: #1f8a4c; --win-soft: #e2f4e9; --warn: #a86a00; --warn-soft: #fbf0d9;
+    --bar: #cfd9ea;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #151514; --panel: #1f1f1d; --ink: #ecebe7; --muted: #9c9991; --line: #33322f;
+      --accent: #6c9ef0; --accent-soft: #22324d; --win: #4cc27e; --win-soft: #1c3627; --warn: #e5b150; --warn-soft: #3a2f17;
+      --bar: #34445f;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  main { max-width: 1320px; margin: 0 auto; padding: 32px 16px 80px; }
+  nav { display: flex; gap: 14px; font-size: 13px; margin-bottom: 18px; }
+  nav a { color: var(--muted); text-decoration: none; }
+  nav a.on { color: var(--ink); font-weight: 600; }
+  h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); margin: 0 0 20px; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 20px; }
+  .toolbar .spacer { flex: 1; }
+  .toolbar .total { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+  .toolbar .total b { color: var(--ink); }
+  #speed { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-bottom: 16px; }
+  #speed h2 { font-size: 14px; margin: 0 0 8px; }
+  .stack { display: flex; height: 14px; border-radius: 7px; overflow: hidden; background: var(--line); margin-bottom: 10px; }
+  .stack i { display: block; height: 100%; }
+  .legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 6px 16px; font-size: 13px; }
+  .legend div { display: flex; gap: 8px; align-items: baseline; min-width: 0; }
+  .legend .sw { width: 10px; height: 10px; border-radius: 3px; flex: none; transform: translateY(1px); }
+  .legend b { font-variant-numeric: tabular-nums; }
+  .legend small { color: var(--muted); }
+  .cands { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+  .cands b { color: var(--ink); font-variant-numeric: tabular-nums; }
+  button { font: inherit; border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 8px; padding: 7px 12px; cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  button.ghost { border: none; background: none; color: var(--muted); padding: 4px 6px; }
+  button.ghost:hover { color: var(--ink); }
+  label.toggle { display: flex; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); cursor: pointer; }
+  input[type=text] { font: inherit; color: var(--ink); background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 4px 6px; width: 100%; min-width: 0; }
+  input[type=text]:hover { border-color: var(--line); }
+  input[type=text]:focus { outline: none; border-color: var(--accent); background: var(--bg); }
+  #qs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
+  @media (max-width: 980px) { #qs { grid-template-columns: minmax(0, 1fr); } }
+  .q { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px 10px; min-width: 0; }
+  .qhead { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+  .num { font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .qtext { font-size: 16px; font-weight: 600; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px 22px; font-size: 12px; }
+  .tag { padding: 2px 8px; border-radius: 99px; background: var(--bg); color: var(--muted); border: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+  .tag.sure { background: var(--win-soft); color: var(--win); border-color: transparent; font-weight: 600; }
+  .tag.unsure { background: var(--warn-soft); color: var(--warn); border-color: transparent; font-weight: 600; }
+  .tag.time { color: var(--ink); }
+  .opts { display: grid; gap: 2px; margin-left: 10px; }
+  .opt { display: grid; grid-template-columns: 18px minmax(0, 1fr) minmax(40px, 140px) 46px 38px 22px; gap: 8px; align-items: center; padding: 2px 6px; border-radius: 8px; }
+  .opt.best { background: var(--accent-soft); }
+  .opt .letter { font-weight: 700; color: var(--muted); text-align: center; }
+  .opt.best .letter { color: var(--accent); }
+  .opt.best input { font-weight: 600; }
+  .bar { height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--bar); transition: width .35s ease; }
+  .opt.best .bar i { background: var(--accent); }
+  .p, .share { text-align: right; font-size: 13px; font-variant-numeric: tabular-nums; }
+  .share { color: var(--muted); }
+  .colhead { display: grid; grid-template-columns: 18px minmax(0, 1fr) minmax(40px, 140px) 46px 38px 22px; gap: 8px; margin-left: 10px; padding: 0 6px; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+  .colhead span:nth-child(4), .colhead span:nth-child(5) { text-align: right; }
+  .qfoot { display: flex; gap: 6px; margin: 4px 0 0 10px; }
+  .loading .bar i { opacity: .4; }
+  @media (max-width: 640px) {
+    .opt, .colhead { grid-template-columns: 18px minmax(0, 1fr) 50px 44px 0 20px; }
+    .share, .colhead span:nth-child(5) { display: none; }
+    .bar { display: none; }
+    .colhead span:nth-child(3) { display: none; }
+    .opts, .colhead, .qfoot { margin-left: 0; }
+    .tags { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <nav><a href="/">Wikirace</a><a href="/mcq" class="on">Quiz</a></nav>
+  <h1>Reranker Quiz</h1>
+  <p class="sub">Qwen3-Reranker-0.6B scores each answer against the question, one pair at a time. Edit any question or answer and it re-scores.</p>
+
+  <div class="toolbar">
+    <button class="primary" id="all">Score all</button>
+    <button id="add">+ New question</button>
+    <label class="toggle" title="Put every choice inside the query too. Earlier tests showed this confuses the reranker."><input type="checkbox" id="listed"> List all choices in the query</label>
+    <span class="spacer"></span>
+    <span class="total" id="total"></span>
+  </div>
+
+  <div id="speed" hidden></div>
+  <div id="qs"></div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const LETTERS = "ABCDEFGHIJ";
+let INSTRUCTION = "";
+let questions = [];
+
+// easy/ambiguous label for the presets (first three are the easy ones)
+const kindOf = (i, q) => q.kind ?? (q.answer && !q.answer.includes("?") ? "Easy" : q.answer ? "Ambiguous" : "Custom");
+
+function verdict(scores) {
+  if (!scores?.length) return null;
+  const s = [...scores].sort((a, b) => b - a);
+  const top = s[0], gap = top - (s[1] ?? 0);
+  if (top >= 0.5 && gap >= 0.3) return ["sure", `Confident · gap ${gap.toFixed(2)}`];
+  if (top < 0.3 || gap < 0.1) return ["unsure", `Unsure · top ${top.toFixed(2)}, gap ${gap.toFixed(2)}`];
+  return ["", `Leaning · gap ${gap.toFixed(2)}`];
+}
+
+function render() {
+  $("qs").innerHTML = "";
+  questions.forEach((q, qi) => $("qs").append(card(q, qi)));
+}
+
+function card(q, qi) {
+  const el = document.createElement("section");
+  el.className = "q";
+  const best = q.scores ? q.scores.indexOf(Math.max(...q.scores)) : -1;
+  const total = q.scores ? q.scores.reduce((a, b) => a + b, 0) || 1 : 1;
+  const v = verdict(q.scores);
+  el.innerHTML = `
+    <div class="qhead">
+      <span class="num">${qi + 1}.</span>
+      <input type="text" class="qtext" value="${esc(q.question)}" placeholder="Type a question…">
+      <button class="ghost" data-act="del" title="Remove question">✕</button>
+    </div>
+    <div class="tags">
+      <span class="tag">${kindOf(qi, q)}</span>
+      ${q.answer ? `<span class="tag">Expected: ${esc(q.answer)}</span>` : ""}
+      ${v ? `<span class="tag ${v[0]}">${v[1]}</span>` : ""}
+      ${q.secs != null ? `<span class="tag time" title="Model time on the server / full round trip from this page">⏱ model ${(q.secs * 1000).toFixed(0)} ms · round trip ${q.rtt.toFixed(0)} ms</span>` : ""}
+    </div>
+    <div class="colhead"><span></span><span>Answer</span><span></span><span>p(yes)</span><span>share</span><span></span></div>
+    <div class="opts">${q.opts.map((o, i) => `
+      <div class="opt${i === best ? " best" : ""}">
+        <span class="letter">${LETTERS[i]}</span>
+        <input type="text" data-opt="${i}" value="${esc(o)}" placeholder="Answer…">
+        <span class="bar"><i style="width:${q.scores ? (q.scores[i] * 100).toFixed(1) : 0}%"></i></span>
+        <span class="p">${q.scores ? q.scores[i].toFixed(3) : "—"}</span>
+        <span class="share">${q.scores ? ((q.scores[i] / total) * 100).toFixed(0) + "%" : ""}</span>
+        <button class="ghost" data-act="rmopt" data-i="${i}" title="Remove answer">−</button>
+      </div>`).join("")}
+    </div>
+    <div class="qfoot">
+      ${q.opts.length < 10 ? `<button class="ghost" data-act="addopt">+ answer</button>` : ""}
+      <button class="ghost" data-act="score">↻ re-score</button>
+    </div>`;
+
+  let timer;
+  const rescoreSoon = () => { clearTimeout(timer); timer = setTimeout(() => score(qi), 500); };
+  el.querySelector(".qtext").addEventListener("input", (e) => { q.question = e.target.value; rescoreSoon(); });
+  el.querySelectorAll("[data-opt]").forEach((inp) => inp.addEventListener("input", (e) => { q.opts[+e.target.dataset.opt] = e.target.value; rescoreSoon(); }));
+  el.querySelectorAll("[data-act]").forEach((b) => b.addEventListener("click", () => {
+    const act = b.dataset.act;
+    if (act === "del") { questions.splice(qi, 1); render(); updateTotal(); return; }
+    if (act === "addopt") { q.opts.push(""); q.scores = null; render(); el.querySelector(`[data-opt="${q.opts.length - 1}"]`); focusLast(qi); return; }
+    if (act === "rmopt") { q.opts.splice(+b.dataset.i, 1); q.scores = null; render(); score(qi); return; }
+    if (act === "score") score(qi);
+  }));
+  return el;
+}
+
+function focusLast(qi) {
+  const inputs = $("qs").children[qi]?.querySelectorAll("[data-opt]");
+  inputs?.[inputs.length - 1]?.focus();
+}
+
+async function score(qi) {
+  const q = questions[qi];
+  const opts = q.opts.map((o) => o.trim());
+  if (!q.question.trim() || opts.filter(Boolean).length < 2) return;
+  const query = $("listed").checked ? `${q.question} Choices: ${opts.filter(Boolean).join("; ")}` : q.question;
+  $("qs").children[qi]?.classList.add("loading");
+  const t = performance.now();
+  try {
+    const r = await fetch("/score", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ instruction: INSTRUCTION, query, docs: opts.map((o) => o || "(empty)") }) });
+    const res = await r.json();
+    q.scores = res.scores; q.secs = res.secs; q.rtt = performance.now() - t; q.n = opts.length;
+  } catch (e) {
+    q.scores = null;
+  }
+  // re-render this card only, keeping focus if the user is typing in it
+  const old = $("qs").children[qi];
+  const active = document.activeElement, sel = active?.selectionStart;
+  const key = active && old?.contains(active) ? (active.dataset.opt ?? "q") : null;
+  const fresh = card(q, qi);
+  old?.replaceWith(fresh);
+  if (key != null) {
+    const target = key === "q" ? fresh.querySelector(".qtext") : fresh.querySelector(`[data-opt="${key}"]`);
+    target?.focus(); if (sel != null) target?.setSelectionRange(sel, sel);
+  }
+  updateTotal();
+}
+
+function updateTotal() {
+  const done = questions.filter((q) => q.secs != null);
+  if (!done.length) { $("total").innerHTML = ""; return; }
+  const model = done.reduce((a, q) => a + q.secs, 0) * 1000, rtt = done.reduce((a, q) => a + q.rtt, 0);
+  $("total").innerHTML = `${done.length} scored · avg model <b>${(model / done.length).toFixed(0)} ms</b> · avg round trip <b>${(rtt / done.length).toFixed(0)} ms</b>`;
+}
+
+async function scoreAll() {
+  $("speed").hidden = true;
+  const started = performance.now();
+  for (let i = 0; i < questions.length; i++) await score(i);  // one at a time: the model is shared
+  showSpeed(performance.now() - started);
+}
+
+// After "Score all": model scoring on the server vs request overhead vs this page's own work.
+function showSpeed(wallMs) {
+  const done = questions.filter((q) => q.secs != null && q.n);
+  if (!done.length) return;
+  const model = done.reduce((a, q) => a + q.secs * 1000, 0);
+  const rtt = done.reduce((a, q) => a + q.rtt, 0);
+  const parts = [
+    ["Model scoring", model, "var(--accent)", "reranker on the server (tokenising + forward passes)"],
+    ["Request overhead", Math.max(0, rtt - model), "var(--win)", "HTTP, JSON, server handling"],
+    ["Page work", Math.max(0, wallMs - rtt), "var(--muted)", "building the request, re-drawing the cards"],
+  ];
+  const total = parts.reduce((a, p) => a + p[1], 0) || 1;
+  const answers = done.reduce((a, q) => a + q.n, 0);
+  const ms = (x) => x < 1000 ? x.toFixed(0) + " ms" : (x / 1000).toFixed(2) + " s";
+  $("speed").innerHTML = `<h2>Speed · ${done.length} questions in ${ms(wallMs)}</h2>
+    <div class="stack">${parts.map((p) => `<i style="width:${(p[1] / total) * 100}%;background:${p[2]}"></i>`).join("")}</div>
+    <div class="legend">${parts.map((p) => `<div><span class="sw" style="background:${p[2]}"></span>
+      <span>${p[0]} <b>${ms(p[1])}</b> <small>${((p[1] / total) * 100).toFixed(0)}% · ${p[3]}</small></span></div>`).join("")}</div>
+    <div class="cands">Answers scored: <b>${answers}</b> (<b>${(answers / done.length).toFixed(1)}</b> per question) ·
+      model time per question <b>${ms(model / done.length)}</b> · per answer <b>${(model / answers).toFixed(1)} ms</b></div>`;
+  $("speed").hidden = false;
+}
+
+$("all").onclick = scoreAll;
+$("listed").onchange = scoreAll;
+$("add").onclick = () => {
+  questions.push({ question: "", opts: ["", "", ""], kind: "Custom" });
+  render();
+  $("qs").lastElementChild.querySelector(".qtext").focus();
+};
+
+(async () => {
+  const r = await (await fetch("/mcq/presets")).json();
+  INSTRUCTION = r.instruction;
+  questions = r.questions.map((q) => ({ question: q.question, opts: Object.values(q.options), answer: q.answer }));
+  render();
+  scoreAll();
+})();
+</script>
+</body>
+</html>

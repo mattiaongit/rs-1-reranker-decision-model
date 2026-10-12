@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="demo-token" content="__TOKEN__">
+<title>Reranker Browser Agent</title>
+<style>
+  :root {
+    --bg: #f6f5f1; --panel: #ffffff; --ink: #1d1c1a; --muted: #6f6c66; --line: #e3e0d8;
+    --accent: #2f6fdb; --accent-soft: #e5eefc; --win: #1f8a4c; --win-soft: #e2f4e9; --warn: #a86a00; --warn-soft: #fbf0d9;
+    --bad: #b3261e; --bad-soft: #fbe4e2;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #151514; --panel: #1f1f1d; --ink: #ecebe7; --muted: #9c9991; --line: #33322f;
+      --accent: #6c9ef0; --accent-soft: #22324d; --win: #4cc27e; --win-soft: #1c3627; --warn: #e5b150; --warn-soft: #3a2f17;
+      --bad: #f08a80; --bad-soft: #3d1f1c;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  main { max-width: 1320px; margin: 0 auto; padding: 28px 16px 60px; }
+  .top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; margin-bottom: 4px; }
+  h1 { font-size: 22px; margin: 0; letter-spacing: -0.01em; }
+  .credit { font-size: 13px; color: var(--muted); }
+  .credit a { color: var(--accent); }
+  .sub { color: var(--muted); margin: 0 0 18px; font-size: 14px; }
+  form { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: grid; gap: 8px; margin-bottom: 16px; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  select, input, textarea { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; min-width: 0; }
+  select { flex: 0 1 260px; }
+  #mode { flex: 0 1 300px; }
+  #url { flex: 1 1 240px; }
+  textarea { width: 100%; resize: vertical; }
+  select:focus, input:focus, textarea:focus { outline: none; border-color: var(--accent); }
+  button { font: inherit; border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 8px; padding: 7px 16px; cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  button:disabled { opacity: .45; cursor: default; }
+  .status { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin-bottom: 12px; font-size: 14px; }
+  .pill { padding: 3px 10px; border-radius: 99px; font-weight: 600; font-size: 13px; background: var(--line); color: var(--muted); }
+  .pill.running { background: var(--accent-soft); color: var(--accent); }
+  .pill.done { background: var(--win-soft); color: var(--win); }
+  .pill.blocked, .pill.error { background: var(--bad-soft); color: var(--bad); }
+  .meta { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .meta b { color: var(--ink); }
+  #page-url { color: var(--muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1 1 200px; min-width: 0; }
+  .cols { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+  @media (max-width: 900px) { .cols { grid-template-columns: minmax(0, 1fr); } }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; min-width: 0; }
+  .shot { aspect-ratio: 16 / 10; display: grid; place-items: center; color: var(--muted); font-size: 14px; background: var(--bg); }
+  .shot img { width: 100%; height: 100%; object-fit: contain; object-position: top; display: block; }
+  ol { list-style: none; margin: 0; padding: 4px 0; }
+  li { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 2px 10px; padding: 8px 12px; border-top: 1px solid var(--line); }
+  li:first-child { border-top: none; }
+  .n { color: var(--muted); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .act { min-width: 0; overflow-wrap: anywhere; }
+  .op { font-size: 11px; font-weight: 700; letter-spacing: .04em; color: var(--accent); margin-right: 6px; }
+  .typed { font-weight: 600; }
+  .ms { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; text-align: right; }
+  .why { grid-column: 2 / 4; color: var(--muted); font-size: 13px; }
+  li.final .op { color: var(--win); }
+  .who { font-weight: 600; font-size: 12px; padding: 1px 7px; border-radius: 99px; margin-right: 4px; white-space: nowrap; }
+  .who.rr { background: var(--accent-soft); color: var(--accent); }
+  .who.agree { background: var(--win-soft); color: var(--win); }
+  .who.rule { background: var(--warn-soft); color: var(--warn); white-space: normal; }
+  .empty { padding: 16px 12px; color: var(--muted); font-size: 14px; }
+  #speed { padding: 12px 14px; margin-bottom: 14px; }
+  #speed h2 { font-size: 14px; margin: 0 0 8px; }
+  .stack { display: flex; height: 14px; border-radius: 7px; overflow: hidden; background: var(--line); margin-bottom: 10px; }
+  .stack i { display: block; height: 100%; }
+  .legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 6px 16px; font-size: 13px; }
+  .legend div { display: flex; gap: 8px; align-items: baseline; min-width: 0; }
+  .legend .sw { width: 10px; height: 10px; border-radius: 3px; flex: none; transform: translateY(1px); }
+  .legend b { font-variant-numeric: tabular-nums; }
+  .legend small { color: var(--muted); }
+  .cands { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+  .cands b { color: var(--ink); font-variant-numeric: tabular-nums; }
+  .side { display: grid; gap: 14px; min-width: 0; }
+  #choices { padding: 10px 12px 12px; }
+  .ch-head { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+  .ch-head b { color: var(--ink); }
+  .ch { position: relative; display: grid; grid-template-columns: 18px minmax(0, 1fr) 44px; gap: 8px; align-items: center;
+        padding: 6px 8px; border-radius: 8px; border: 1px solid transparent; transition: background .25s, border-color .25s, transform .25s; }
+  .ch .rank { color: var(--muted); font-weight: 700; font-size: 12px; }
+  .ch .txt { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; position: relative; z-index: 1; }
+  .ch .sc { text-align: right; font-size: 13px; font-variant-numeric: tabular-nums; color: var(--muted); }
+  .ch .bar { grid-column: 2 / 4; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+  .ch .bar i { display: block; height: 100%; width: 0; background: var(--muted); opacity: .45; transition: width .5s cubic-bezier(.2,.8,.2,1); }
+  .ch.picked { background: var(--accent-soft); border-color: var(--accent); transform: scale(1.015); }
+  .ch.picked .bar i { background: var(--accent); opacity: 1; }
+  .ch.picked .sc, .ch.picked .rank { color: var(--accent); font-weight: 700; }
+  .ch.picked::after { content: "selected"; position: absolute; right: 8px; top: -9px; font-size: 10px; font-weight: 700; letter-spacing: .05em;
+        text-transform: uppercase; background: var(--accent); color: #fff; padding: 1px 6px; border-radius: 99px; animation: pop .3s ease; }
+  .ch.overridden { opacity: .6; }
+  .override { margin-top: 6px; font-size: 13px; padding: 6px 8px; border-radius: 8px; background: var(--warn-soft); color: var(--warn); animation: pop .3s ease; }
+  @keyframes pop { from { transform: scale(.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .ch, .ch .bar i, .ch.picked::after, .override { transition: none; animation: none; } }
+  #error { color: var(--bad); font-size: 14px; }
+</style>
+</head>
+<body>
+<main>
+  <div class="top">
+    <h1>Reranker browser agent</h1>
+    <span class="credit">Inspired by <a href="https://github.com/browser-use/jev-ultrafast" target="_blank" rel="noopener">jev-ultrafast</a></span>
+  </div>
+  <p class="sub">A local Qwen3-Reranker-0.6B scores every possible action on the page. Choose who decides: generic rules on top of the reranker, code that only prepares the options while the reranker always chooses, or the reranker alone.</p>
+
+  <form id="form">
+    <div class="row">
+      <select id="site"></select>
+      <select id="mode" title="Who decides">
+        <option value="rules">Rules + reranker</option>
+        <option value="assist">Assisted: code prepares, reranker decides</option>
+        <option value="pure_done">Reranker + done check</option>
+        <option value="pure">Reranker only</option>
+      </select>
+      <input id="url" type="url" placeholder="https://…" hidden>
+    </div>
+    <textarea id="goal" rows="2"></textarea>
+    <div class="row">
+      <button type="submit" id="run" class="primary">Run</button>
+      <button type="button" id="stop" disabled>Stop</button>
+      <span id="error"></span>
+    </div>
+  </form>
+
+  <div class="status">
+    <span id="pill" class="pill">Idle</span>
+    <span class="meta">Steps <b id="steps">0</b></span>
+    <span class="meta">Time <b id="time">—</b></span>
+    <span id="page-url"></span>
+  </div>
+
+  <div class="panel" id="speed" hidden></div>
+
+  <div class="cols">
+    <div class="panel shot" id="shot">The agent's browser view appears here.</div>
+    <div class="side">
+      <div class="panel" id="choices"><div class="ch-head"><span>Reranker's top 4 choices</span></div>
+        <div class="empty" style="padding:4px 0">Appear here at each step, ordered by score.</div></div>
+      <div class="panel"><ol id="list"><li class="empty">No steps yet.</li></ol></div>
+    </div>
+  </div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const token = document.querySelector('meta[name="demo-token"]').content;
+const SITES = [
+  ["flights", "Google Flights", "Find one-way flights from Zurich to London on November 20, 2026, for one adult in economy. Stop when matching flight options are visible. Do not select or book a flight."],
+  ["travel", "Hotel search (test page)", "Find a Design stay in Lisbon with Free cancellation and open Casa Flora."],
+  ["research", "Article list (test page)", "Open the article about using finite choices to control browser agents."],
+  ["wikipedia", "Wikipedia", "Find and open the Wikipedia article about Gödel’s incompleteness theorems."],
+  ["books", "Books to Scrape", "Open the Poetry category and then open the book Olio."],
+  ["hn", "Hacker News", "Open the jobs page."],
+  ["custom", "Custom URL…", ""],
+];
+const OPS = { CLICK: "Click", TYPE_TEXT: "Type", SELECT: "Select", SCROLL: "Scroll", WAIT: "Wait", DONE: "Done" };
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+let running = false, stopping = false, mode = "rules";
+
+$("site").innerHTML = SITES.map(([k, name]) => `<option value="${k}">${esc(name)}</option>`).join("");
+function pickSite() {
+  const site = SITES.find((s) => s[0] === $("site").value);
+  $("url").hidden = site[0] !== "custom";
+  if (site[2] || site[0] === "custom") $("goal").value = site[2];
+  if (site[0] === "custom") $("url").focus();
+}
+$("site").addEventListener("change", pickSite);
+pickSite();
+
+async function call(name, body = {}) {
+  const r = await fetch(`/api/${name}`, {
+    method: "POST", headers: { "Content-Type": "application/json", "X-Demo-Token": token }, body: JSON.stringify(body),
+  });
+  const data = await r.json();
+  if (!r.ok) throw Error(data.error || "Request failed");
+  return data;
+}
+
+function setStatus(kind, text) { $("pill").className = "pill " + kind; $("pill").textContent = text; }
+
+function render(s) {
+  const page = s.page || {};
+  if (page.screenshot) $("shot").innerHTML = `<img alt="Agent browser" src="data:image/jpeg;base64,${page.screenshot}">`;
+  $("page-url").textContent = page.url || "";
+  $("steps").textContent = s.history.length;
+  $("time").textContent = s.elapsed_ms ? (s.elapsed_ms / 1000).toFixed(1) + " s" : "—";
+  // A decision on a page that changed meanwhile is dropped and made again, so each step is
+  // matched to the last decision made before it ran, not by position.
+  const decidedFor = (h) => s.decisions.filter((d) => d.elapsed_ms <= h.executed_ms).pop();
+  const rows = s.history.map((h) => ({
+    op: h.operation, label: h.action, text: h.text, ms: h.latency_ms, why: decidedFor(h)?.raw_answers?.reason,
+    who: who(decidedFor(h)?.raw_answers, mode),
+  }));
+  const last = s.decisions[s.decisions.length - 1];
+  if (s.status === "done" && last) rows.push({ op: "DONE", label: s.page?.title, ms: last.latency_ms, why: last.raw_answers?.reason,
+    who: mode === "rules" ? ["rule", "Done check: rules plus a reranker score"] : who(last.raw_answers, mode), final: true });
+  $("list").innerHTML = rows.length ? rows.map((r, i) => `<li class="${r.final ? "final" : ""}">
+      <span class="n">${i + 1}</span>
+      <span class="act"><span class="op">${OPS[r.op] || esc(r.op)}</span>${esc(r.label)}${r.text ? ` → <span class="typed">“${esc(r.text)}”</span>` : ""}</span>
+      <span class="ms">${r.ms ?? ""} ms</span>
+      ${r.why || r.who ? `<span class="why">${r.who ? `<span class="who ${r.who[0]}">${esc(r.who[1])}</span> ` : ""}${esc(r.why || "")}</span>` : ""}
+    </li>`).join("") : '<li class="empty">No steps yet.</li>';
+}
+
+// The reranker's top 4 for this decision, ordered by its score; the bars fill, then the pick lights up.
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+async function showChoices(d, mode, step) {
+  const raw = d?.raw_answers || {};
+  const list = (mode === "rules" ? raw.raw_ranked : raw.ranked) || [];
+  const top = list.slice(0, 4);
+  const n = d?.usage?.candidates;
+  const head = `<div class="ch-head"><span>Step ${step} · reranker's top 4${n ? ` of <b>${n}</b> options` : ""}</span><span>${d?.latency_ms ?? ""} ms</span></div>`;
+  if (!top.length) {  // a decision made without ranking options (e.g. a separate done check)
+    $("choices").innerHTML = head + `<div class="override" style="background:var(--win-soft);color:var(--win)">${esc(raw.reason || d?.operation || "")}</div>`;
+    return;
+  }
+  $("choices").innerHTML = head + top.map(([score, doc], i) => `<div class="ch" data-doc="${esc(doc)}">
+      <span class="rank">${i + 1}</span><span class="txt" title="${esc(doc)}">${esc(doc)}</span>
+      <span class="sc">${(Math.min(score, 1) * 100).toFixed(0)}%</span><span class="bar"><i></i></span></div>`).join("");
+  const rows = [...$("choices").querySelectorAll(".ch")];
+  await sleep(30);
+  rows.forEach((r, i) => setTimeout(() => { r.querySelector("i").style.width = `${Math.min(top[i][0], 1) * 100}%`; }, i * 90));
+  await sleep(rows.length * 90 + 450);
+  const picked = raw.picked;
+  const hit = rows.find((r) => r.dataset.doc === picked);
+  if (hit) {
+    hit.classList.add("picked");
+    const k = rows.indexOf(hit);
+    if (k > 0) {  // a rule chose a lower-ranked option over the reranker's #1
+      rows[0].classList.add("overridden");
+      $("choices").insertAdjacentHTML("beforeend", `<div class="override">Rule chose #${k + 1} instead of the reranker's #1<br><small>${esc(raw.reason || "")}</small></div>`);
+    }
+    return;
+  }
+  // A rule chose something other than the reranker's top: show the reranker's top faded and what the rule did.
+  rows[0]?.classList.add("overridden");
+  const what = picked && typeof picked === "string" ? picked : d?.operation;
+  $("choices").insertAdjacentHTML("beforeend", `<div class="override">Rule overrode the reranker → ${esc(what)}<br><small>${esc(raw.reason || "")}</small></div>`);
+}
+
+// After a run: where the time went (model vs browser vs page loading) and how many options were scored.
+const SPEED_PARTS = [
+  ["model_ms", "Model scoring", "var(--accent)", "reranker decisions + choosing field values"],
+  ["observe_ms", "Page loading & reading", "var(--win)", "waiting for the page to settle, reading elements, screenshot"],
+  ["act_ms", "Browser actions", "var(--warn)", "clicks and typing, incl. human-like pointer movement"],
+  ["open_ms", "Opening the start page", "#8a7fd0", "first navigation"],
+  ["rest_ms", "UI, network & choice animation", "var(--muted)", "the rest of the wall-clock time"],
+];
+function showSpeed(sp, wallMs) {
+  if (!sp) { $("speed").hidden = true; return; }
+  const parts = { ...sp, rest_ms: Math.max(0, wallMs - sp.model_ms - sp.observe_ms - sp.act_ms - sp.open_ms) };
+  const total = SPEED_PARTS.reduce((a, [k]) => a + parts[k], 0) || 1;
+  const sec = (ms) => (ms / 1000).toFixed(ms < 10000 ? 2 : 1) + " s";
+  const perOption = sp.candidates_total ? (sp.model_ms / sp.candidates_total).toFixed(1) : "—";
+  $("speed").innerHTML = `<h2>Speed · ${sec(wallMs)} total</h2>
+    <div class="stack">${SPEED_PARTS.map(([k, , c]) => `<i style="width:${(parts[k] / total) * 100}%;background:${c}" title="${k}"></i>`).join("")}</div>
+    <div class="legend">${SPEED_PARTS.map(([k, name, c, note]) => `<div><span class="sw" style="background:${c}"></span>
+      <span>${name} <b>${sec(parts[k])}</b> <small>${((parts[k] / total) * 100).toFixed(0)}% · ${note}</small></span></div>`).join("")}</div>
+    <div class="cands"><b>${sp.decisions}</b> decisions${sp.reused ? ` (${sp.reused} reused without a model call)` : ""} ·
+      options scored: <b>${sp.candidates_total}</b> in total, <b>${sp.candidates_avg}</b> per decision on average, <b>${sp.candidates_max}</b> at most ·
+      model time per option <b>${perOption} ms</b> · <b>${sp.acts}</b> browser actions, <b>${sp.observes}</b> page reads${sp.text_calls ? ` · ${sp.text_calls} field value${sp.text_calls > 1 ? "s" : ""} chosen` : ""}</div>`;
+  $("speed").hidden = false;
+}
+
+// Who made this step's choice: the reranker's own top pick, or a rule (and whether the reranker agreed).
+function who(raw, mode) {
+  if (!raw) return null;
+  if ((raw.reason || "").startsWith("done check")) return ["rule", "Done check (rules + a reranker score)"];
+  if (mode !== "rules") return ["rr", "Reranker"];
+  if ((raw.reason || "").startsWith("goal")) return ["rr", "Reranker"];
+  if (raw.reranker_agreed) return ["agree", "Rule · reranker agreed"];
+  return ["rule", raw.reranker_top ? `Rule · reranker wanted: ${raw.reranker_top_op === "TYPE_TEXT" ? "type into " : ""}“${raw.reranker_top}”` : "Rule"];
+}
+
+function controls() {
+  $("run").disabled = running; $("site").disabled = running; $("mode").disabled = running; $("goal").disabled = running; $("url").disabled = running;
+  $("stop").disabled = !running || stopping;
+}
+
+$("form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (running) return;
+  running = true; stopping = false; $("error").textContent = ""; controls();
+  $("speed").hidden = true;
+  const startedAt = performance.now();
+  let last = null;
+  setStatus("running", "Opening page…");
+  $("shot").textContent = "Opening page…";
+  try {
+    mode = $("mode").value;
+    let s = await call("reset", { scenario: $("site").value, goal: $("goal").value, url: $("url").value, mode: $("mode").value });
+    render(s);
+    setStatus("running", "Running");
+    while (!stopping && !["done", "blocked"].includes(s.status) && s.history.length < (s.max_steps || 30)) {
+      s = await call("predict");
+      await showChoices(s.decision, mode, s.history.length + 1);
+      await sleep(350);
+      try {
+        s = await call("act", { fingerprint: s.page.fingerprint });
+      } catch (err) {
+        // The page changed between deciding and acting: decide again on the new page.
+        if (!/changed|Observe|covered|navigating/i.test(err.message)) throw err;
+        s = { ...(await fetch("/api/state").then((r) => r.json())), speed: s.speed };
+      }
+      render(s);
+    }
+    last = s;
+    if (s.status === "done") setStatus("done", "Done");
+    else if (s.status === "blocked") setStatus("blocked", "Gave up");
+    else if (stopping) setStatus("", "Stopped");
+    else setStatus("blocked", "Step limit reached");
+  } catch (err) {
+    setStatus("error", "Error");
+    $("error").textContent = err.message;
+  }
+  if (last?.speed) showSpeed(last.speed, performance.now() - startedAt);
+  running = false; stopping = false; controls();
+});
+$("stop").addEventListener("click", () => { stopping = true; controls(); setStatus("running", "Stopping after this step…"); });
+</script>
+</body>
+</html>

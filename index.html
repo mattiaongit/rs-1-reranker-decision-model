@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reranker Wikirace</title>
+<style>
+  :root {
+    --bg: #f6f5f1; --panel: #ffffff; --ink: #1d1c1a; --muted: #6f6c66; --line: #e3e0d8;
+    --accent: #2f6fdb; --accent-soft: #e5eefc; --win: #1f8a4c; --win-soft: #e2f4e9; --fail: #c2412d;
+    --bar: #cfd9ea;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #151514; --panel: #1f1f1d; --ink: #ecebe7; --muted: #9c9991; --line: #33322f;
+      --accent: #6c9ef0; --accent-soft: #22324d; --win: #4cc27e; --win-soft: #1c3627; --fail: #ec7a66;
+      --bar: #34445f;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 32px 16px 80px; }
+  h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); margin: 0 0 24px; }
+  form { display: grid; gap: 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .route { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 10px; align-items: end; }
+  .route > div { min-width: 0; }
+  .opts { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+  .opts .spacer { flex: 1; }
+  button.stop { color: var(--fail); font-weight: 600; }
+  [hidden] { display: none !important; }
+  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .05em; }
+  .field { display: flex; gap: 6px; }
+  select { font: inherit; padding: 9px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); }
+  input { flex: 1; min-width: 0; font: inherit; padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); }
+  input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  button { font: inherit; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 8px; padding: 9px 12px; cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; padding: 9px 18px; }
+  button:disabled { opacity: .5; cursor: default; }
+  .arrow { color: var(--muted); padding-bottom: 9px; font-size: 18px; }
+  .presets { margin: 10px 0 28px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .presets button { font-size: 13px; padding: 4px 10px; border-radius: 99px; }
+  .status { display: flex; gap: 16px; flex-wrap: wrap; color: var(--muted); font-size: 13px; margin-bottom: 14px; min-height: 20px; }
+  .status b { color: var(--ink); font-variant-numeric: tabular-nums; }
+  ol.path { list-style: none; margin: 0; padding: 0; position: relative; }
+  ol.path::before { content: ""; position: absolute; left: 19px; top: 20px; bottom: 20px; width: 2px; background: var(--line); }
+  .step { position: relative; display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 12px; margin-bottom: 14px; }
+  .dot { width: 40px; height: 40px; border-radius: 50%; background: var(--panel); border: 2px solid var(--line); display: grid; place-items: center; font-weight: 700; font-size: 13px; z-index: 1; font-variant-numeric: tabular-nums; }
+  .step.start .dot { border-color: var(--ink); }
+  .step.target .dot { background: var(--win); border-color: var(--win); color: #fff; }
+  .step.thinking .dot { border-color: var(--accent); border-top-color: transparent; animation: spin 0.9s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; }
+  .card > div { min-width: 0; overflow-wrap: anywhere; }
+  .step.target .card { border-color: var(--win); background: var(--win-soft); }
+  .card h3 { margin: 0; font-size: 16px; }
+  .card h3 a { color: inherit; text-decoration: none; }
+  .card h3 a:hover { text-decoration: underline; }
+  .desc { color: var(--muted); font-size: 13px; }
+  .meta { color: var(--muted); font-size: 12px; margin-top: 6px; font-variant-numeric: tabular-nums; }
+  .thumb { width: 64px; height: 64px; border-radius: 8px; object-fit: cover; background: var(--bg); }
+  details { grid-column: 1 / -1; }
+  summary { cursor: pointer; font-size: 12px; color: var(--accent); }
+  .cands { margin: 8px 0 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+  .cand { display: grid; grid-template-columns: minmax(0, 1fr) 120px 44px; gap: 8px; align-items: center; font-size: 13px; }
+  .cand .t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cand .t small { color: var(--muted); }
+  .cand.chosen .t { font-weight: 600; }
+  .bar { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--bar); }
+  .cand.chosen .bar i { background: var(--accent); }
+  .cand .s { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .goal { margin-top: 6px; border: 1px dashed var(--line); border-radius: 12px; padding: 10px 14px; color: var(--muted); font-size: 13px; }
+  .goal b { color: var(--ink); }
+  .result { margin-top: 18px; padding: 14px 16px; border-radius: 12px; font-weight: 600; }
+  .result.win { background: var(--win-soft); color: var(--win); }
+  .result.fail { background: var(--panel); color: var(--fail); border: 1px solid var(--line); }
+  @media (max-width: 640px) {
+    .route { grid-template-columns: minmax(0, 1fr); }
+    .arrow { display: none; }
+    .cand { grid-template-columns: minmax(0, 1fr) 60px 40px; }
+    .thumb { width: 48px; height: 48px; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <nav style="display:flex;gap:14px;font-size:13px;margin-bottom:18px"><a href="/" style="color:var(--ink);font-weight:600;text-decoration:none">Wikirace</a><a href="/mcq" style="color:var(--muted);text-decoration:none">Quiz</a></nav>
+  <h1>Reranker Wikirace</h1>
+  <p class="sub">On each page, a tiny static-embedding model shortlists the links closest to the target, then Qwen3-Reranker-0.6B (local) scores them and the best one is followed. No training, no LLM.</p>
+
+  <form id="f">
+   <div class="route">
+    <div>
+      <label for="start">Start</label>
+      <div class="field"><input id="start" list="dl-start" value="Pizza" autocomplete="off" required><button type="button" data-rand="start" title="Random article">🎲</button></div>
+      <datalist id="dl-start"></datalist>
+    </div>
+    <div class="arrow">→</div>
+    <div>
+      <label for="target">Target</label>
+      <div class="field"><input id="target" list="dl-target" value="Quantum mechanics" autocomplete="off" required><button type="button" data-rand="target" title="Random article">🎲</button></div>
+      <datalist id="dl-target"></datalist>
+    </div>
+   </div>
+   <div class="opts">
+    <div>
+      <label for="k">Shortlist</label>
+      <select id="k" title="Links kept by the cheap embedding pass before the reranker scores them">
+        <option value="20">20 links</option>
+        <option value="40" selected>40 links</option>
+        <option value="80">80 links</option>
+        <option value="0">Off (score all)</option>
+      </select>
+    </div>
+    <div>
+      <label for="maxhops">Max hops</label>
+      <input id="maxhops" type="number" min="1" max="100" value="30" style="width:76px">
+    </div>
+    <div class="spacer"></div>
+    <button type="button" class="stop" id="stop" hidden>■ Stop</button>
+    <button class="primary" id="go">Race</button>
+   </div>
+  </form>
+  <div class="presets" id="presets"></div>
+
+  <div class="status" id="status"></div>
+  <ol class="path" id="path"></ol>
+  <div id="goal"></div>
+  <div id="result"></div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const PRESETS = [["Pizza", "Quantum mechanics"], ["Banana", "Roman Empire"], ["Taylor Swift", "Photosynthesis"],
+  ["Chess", "Volcano"], ["Coffee", "Apollo 11"], ["Penguin", "French Revolution"], ["Bicycle", "William Shakespeare"]];
+const WIKI = "https://en.wikipedia.org";
+let es = null, hops = 0, scoreTime = 0, linksSeen = 0, linksScored = 0, t0 = 0, ticker = null;
+
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const wikiUrl = (t) => `${WIKI}/wiki/${encodeURIComponent(t.replace(/ /g, "_"))}`;
+
+for (const [s, t] of PRESETS) {
+  const b = document.createElement("button");
+  b.textContent = `${s} → ${t}`;
+  b.onclick = () => { $("start").value = s; $("target").value = t; start(); };
+  $("presets").append(b);
+}
+
+// Title autocomplete and random articles straight from the Wikipedia API.
+for (const id of ["start", "target"]) {
+  let timer;
+  $(id).addEventListener("input", () => {
+    clearTimeout(timer);
+    timer = setTimeout(async () => {
+      const q = $(id).value.trim();
+      if (q.length < 2) return;
+      try {
+        const r = await fetch(`${WIKI}/w/api.php?action=opensearch&format=json&origin=*&limit=8&namespace=0&search=${encodeURIComponent(q)}`);
+        const [, titles] = await r.json();
+        $(`dl-${id}`).innerHTML = titles.map((t) => `<option value="${esc(t)}">`).join("");
+      } catch {}
+    }, 200);
+  });
+}
+document.querySelectorAll("[data-rand]").forEach((b) => b.onclick = async () => {
+  try {
+    const r = await fetch(`${WIKI}/w/api.php?action=query&format=json&origin=*&list=random&rnnamespace=0&rnlimit=1`);
+    $(b.dataset.rand).value = (await r.json()).query.random[0].title;
+  } catch {}
+});
+
+async function addThumb(li, title) {
+  try {
+    const r = await fetch(`${WIKI}/api/rest_v1/page/summary/${encodeURIComponent(title.replace(/ /g, "_"))}`);
+    const src = (await r.json()).thumbnail?.source;
+    if (src) li.querySelector(".card").insertAdjacentHTML("beforeend", `<img class="thumb" src="${esc(src)}" alt="">`);
+  } catch {}
+}
+
+function step(cls, label, title, desc, meta = "", top = null) {
+  const li = document.createElement("li");
+  li.className = `step ${cls}`;
+  const cands = top && top.length ? `<details${top.length && hops <= 1 ? "" : ""}><summary>Top ${top.length} after reranking</summary><ul class="cands">${
+    top.map((c, i) => `<li class="cand${i === 0 ? " chosen" : ""}"><span class="t">${esc(c.title)}${c.desc ? ` <small>— ${esc(c.desc)}</small>` : ""}</span><span class="bar"><i style="width:${Math.max(2, c.score / top[0].score * 100)}%"></i></span><span class="s">${c.score.toFixed(3)}</span></li>`).join("")
+  }</ul></details>` : "";
+  li.innerHTML = `<div class="dot">${label}</div><div class="card"><div><h3><a href="${wikiUrl(title)}" target="_blank" rel="noopener">${esc(title)}</a></h3>${desc ? `<div class="desc">${esc(desc)}</div>` : ""}${meta ? `<div class="meta">${meta}</div>` : ""}</div>${cands}</div>`;
+  $("path").append(li);
+  addThumb(li, title);
+  li.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  return li;
+}
+
+function status(live = true) {
+  const secs = ((performance.now() - t0) / 1000).toFixed(0);
+  $("status").innerHTML = `<span>Hops <b>${hops}</b></span><span>Links seen <b>${linksSeen.toLocaleString()}</b></span><span>Reranked <b>${linksScored.toLocaleString()}</b></span><span>Model time <b>${scoreTime.toFixed(1)}s</b></span><span>Elapsed <b>${secs}s</b></span>${live ? "" : ""}`;
+}
+
+function stop() {
+  if (es) es.close();  // the server notices the closed stream and abandons the race
+  es = null;
+  clearInterval(ticker);
+  $("go").disabled = false;
+  $("go").textContent = "Race";
+  $("stop").hidden = true;
+}
+
+$("stop").onclick = () => {
+  if (!es) return;
+  stop();
+  status(false);
+  document.querySelector(".step.thinking")?.remove();
+  $("result").innerHTML = `<div class="result fail">Stopped after ${hops} hops.</div>`;
+};
+
+function start() {
+  stop();
+  hops = 0; scoreTime = 0; linksSeen = 0; linksScored = 0; t0 = performance.now();
+  $("path").innerHTML = ""; $("goal").innerHTML = ""; $("result").innerHTML = "";
+  $("go").textContent = "Racing…"; $("go").disabled = true; $("stop").hidden = false;
+  ticker = setInterval(status, 500); status();
+  let thinking = null;
+  es = new EventSource(`/race?start=${encodeURIComponent($("start").value)}&target=${encodeURIComponent($("target").value)}&k=${$("k").value}&max_hops=${$("maxhops").value || 30}`);
+  es.onmessage = (m) => {
+    const e = JSON.parse(m.data);
+    if (thinking) { thinking.remove(); thinking = null; }
+    if (e.type === "busy") {
+      $("status").textContent = "Another race is running — waiting for it to finish…";
+    } else if (e.type === "start") {
+      step("start", "S", e.start, e.start_desc, "Start");
+      $("goal").innerHTML = `<div class="goal">Target: <b>${esc(e.target)}</b>${e.target_desc ? ` — ${esc(e.target_desc)}` : ""}</div>`;
+    } else if (e.type === "thinking") {
+      thinking = step("thinking", "", `Reading links on ${e.page}…`, "", "Fetching links and scoring each one against the target");
+      thinking.querySelector("img")?.remove();
+    } else if (e.type === "hop") {
+      hops = e.hop; scoreTime += e.score_s + (e.shortlist_s || 0);
+      if (e.direct) {
+        step("target", "✓", e.title, e.desc, `Direct link found on the page · ${e.n_links.toLocaleString()} links`);
+      } else {
+        linksSeen += e.n_links; linksScored += e.n_scored;
+        const short = e.n_scored < e.n_links ? ` → shortlist ${e.n_scored} (${(e.shortlist_s * 1000).toFixed(0)} ms)` : "";
+        step("", e.hop, e.title, e.desc,
+          `${e.n_links.toLocaleString()} links${short} · rerank ${e.score_s.toFixed(1)}s · fetch ${e.fetch_s.toFixed(1)}s · score ${e.top[0].score.toFixed(3)}`, e.top);
+      }
+    } else if (e.type === "dead_end") {
+      $("result").innerHTML = `<div class="result fail">Dead end on ${esc(e.page)}: every link already visited.</div>`;
+    } else if (e.type === "error") {
+      $("result").innerHTML = `<div class="result fail">Error: ${esc(e.message)}</div>`;
+      stop();
+    } else if (e.type === "done") {
+      status(false);
+      $("result").innerHTML = e.win
+        ? `<div class="result win">Reached the target in ${e.hops} hops, ${e.secs.toFixed(0)}s.</div>`
+        : `<div class="result fail">Gave up after ${e.hops} hops (${e.secs.toFixed(0)}s).</div>`;
+      stop();
+    }
+  };
+  es.onerror = () => { if (es) { $("result").innerHTML ||= `<div class="result fail">Lost connection to the server.</div>`; stop(); } };
+}
+
+$("f").addEventListener("submit", (ev) => { ev.preventDefault(); start(); });
+</script>
+</body>
+</html>
