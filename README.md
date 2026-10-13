@@ -26,7 +26,7 @@ Edit any question or answer in the page and it re-scores.
 
 Get from one article to another by following links only. At each hop RS-1 collects every link on the current article, with each link's short description, and scores them all against the target ("is this article in the same field as the target, and would it link to it?"). It then follows the best unvisited one.
 
-**Pizza → Quantum mechanics** in 3 hops, about 4 seconds:
+**Pizza → Quantum mechanics** in 3 hops, with 1.4 seconds of model time (the rest is loading pages from Wikipedia):
 
 ![Wikirace: Pizza → Quantum mechanics](docs/wikirace-1.gif)
 
